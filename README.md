@@ -1,6 +1,6 @@
 # CUS-and-TBS-Simulator
 
-This is a modification of the previous [EDF-and-RM-Simulator](https://pages.github.com/)
+This is a modification from the previous [EDF-and-RM-Simulator](https://github.com/tobyyu007/EDF-and-RM-Simulator)
 
 - 請實作出Constant Utilization Server與Total Bandwidth Server兩個處理非週期性工作的演算法，server size固定為0.2。
 

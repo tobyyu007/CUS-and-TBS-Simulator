@@ -32,7 +32,7 @@ Demo時間： 另訂
 
 繳交內容：  原始程式、2-3頁報告
  
-Pseudocode
+- Pseudocode
 1.	先將periodic.txt中的每個任務資料讀入，並儲存在適當資料結構中。N為任務總個數
 2.	MaxSimTime=100
 3.	將系統的periodic job就緒佇列PQ初始化成空佇列

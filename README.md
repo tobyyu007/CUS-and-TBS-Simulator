@@ -2,18 +2,18 @@
 
 This is a modification of the previous [EDF-and-RM-Simulator](https://pages.github.com/)
 
-# CUS和TBS排程器
 - 請實作出Constant Utilization Server與Total Bandwidth Server兩個處理非週期性工作的演算法，server size固定為0.2。
 
 - 輸入檔格式(文字格式)
-輸入檔分成兩個，一為檔名periodic.txt，另一為檔名aperiodic.txt
+- 輸入檔分成兩個，一為檔名periodic.txt，另一為檔名aperiodic.txt
+
 periodic.txt
 每一行即為一個週期性的任務，第一個數字為週期，第二個為執行時間，且都為正整數，且以逗號隔開。任務個數不固定。
 Ex:
 3,1
 2,1
 
-	aperiodic.txt
+aperiodic.txt
 每一行即為一個非週期性的工作，第一個數字為抵達時間，第二個為執行時間，且都為正整數，且以逗號隔開。工作個數不固定。
 Ex:
 1,3 
@@ -33,7 +33,7 @@ Demo時間：
 繳交內容：
 	原始程式、2-3頁報告
  
-- Pseudocode
+Pseudocode
 1.	先將periodic.txt中的每個任務資料讀入，並儲存在適當資料結構中。N為任務總個數
 2.	MaxSimTime=100
 3.	將系統的periodic job就緒佇列PQ初始化成空佇列

@@ -52,4 +52,5 @@ Pseudocode
 }
 
 Miss_rate= MissPJobNumber /TotalPJobNumber;
+
 Avweage_Response_Time= TotalResponseTime/FinishedAJobNumber;

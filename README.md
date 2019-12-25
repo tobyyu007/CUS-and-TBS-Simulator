@@ -26,12 +26,9 @@ Ex:
 (2)	非週期性工作的平均反應時間 ，|A|為已完成的非週期性工作集合， 與 分別為工作i之抵達時間與完成時間。
 	
 
-繳交時間：
-	1/6
-Demo時間：
-	另訂
-繳交內容：
-	原始程式、2-3頁報告
+繳交時間：  1/6
+Demo時間： 另訂
+繳交內容：  原始程式、2-3頁報告
  
 Pseudocode
 1.	先將periodic.txt中的每個任務資料讀入，並儲存在適當資料結構中。N為任務總個數
@@ -54,6 +51,5 @@ Pseudocode
     7.	Clock++;
 }
 
-Miss_rate= MissPJobNumber /TotalPJobNumber
-Avweage_Response_Time= TotalResponseTime/FinishedAJobNumber
-
+Miss_rate= MissPJobNumber /TotalPJobNumber;
+Avweage_Response_Time= TotalResponseTime/FinishedAJobNumber;

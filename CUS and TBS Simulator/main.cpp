@@ -35,42 +35,49 @@ struct APTask
 
 struct PJob
 {
-    int release_time;
-    int remain_execution_time;
-    int absolute_deadline;
+    float release_time;
+    float remain_execution_time;
+    float absolute_deadline;
     int TID; //屬於哪個Task的工作
-    int Period;
+    int JID; // Job ID
+    float Period;
 };
 
 struct APJob
 {
-    int release_time;
-    int remain_execution_time;
-    int absolute_deadline;
+    float release_time;
+    float remain_execution_time;
+    float absolute_deadline;
     int TID; //屬於哪個Task的工作
-    int Period;
+    int JID; // Job ID
+    float Period;
 };
 
-struct PTask pTask[1000];  // 儲存 periodic task 資訊
-struct APTask apTask[1000];  // 儲存 aperiodic task 資訊
+struct PTask pTask[10000];  // 儲存 periodic task 資訊
+struct APTask apTask[10000];  // 儲存 aperiodic task 資訊
 
-struct PJob pJob[1000]; // 儲存 periodic job 資訊
-struct APJob apJob[1000]; // 儲存 aperiodic job 資訊
+struct PJob pJob[10000]; // 儲存 periodic job 資訊
+struct APJob apJob[10000]; // 儲存 aperiodic job 資訊
 
 list <int> waitingPQ; // Periodic job 執行序列
 list <int> waitingAPQ; // Aperiodic job 執行序列
 
 int MaxSysTime = 1000; // 系統總執行時間
-int TotalResponseTime = 0;
-int FinishedAJobNumber = 0;
-int MissPJobNumber = 0;
+float TotalResponseTime = 0;
+float FinishedAJobNumber = 0;
+float MissPJobNumber = 0;
+int TotalPTaskNumber = 0; // 總共的 Periodic Task 個數
+int TotalAPTaskNumber = 0; // 總共的 Periodic Task 個數
 int TotalPJobNumber = 0; // 總共的 Periodic Job 個數
 int TotalAPJobNumber = 0; // 總共的 Aperiodic Job 個數
-int Clock = 0;
+float Clock = 0;
 
 // CUS 參數設定
-float serverSize = 0.2; // us
-float CUSDeadline = 0; // d
+
+// ********************************************************************* 要記得改回去 0.2
+float serverSize = 0.25; // us
+// ********************************************************************* 要記得改回去 0.2
+float CUSDeadline = INT_MAX; // d
 
 void showlist(list <int> g);
 void readData();
@@ -101,7 +108,7 @@ void readData()
     
     string line; // 暫存讀入的資料
     
-    for(TotalPJobNumber = 0; getline(perFile, line); TotalPJobNumber++)
+    for(TotalPTaskNumber = 0; getline(perFile, line); TotalPTaskNumber++)
     {
         stringstream line_ss(line);
         vector<float> presult;
@@ -113,18 +120,18 @@ void readData()
         }
         int number = 0;
         
-        pTask[TotalPJobNumber].TID = TotalPJobNumber;
-        pTask[TotalPJobNumber].Phase = 0;
-        pTask[TotalPJobNumber].Period = presult[number++];
-        pTask[TotalPJobNumber].RDeadline = apTask[TotalPJobNumber].Period;
-        pTask[TotalPJobNumber].WCET = presult[number];
+        pTask[TotalPTaskNumber].TID = TotalPTaskNumber;
+        pTask[TotalPTaskNumber].Phase = 0;
+        pTask[TotalPTaskNumber].Period = presult[number++];
+        pTask[TotalPTaskNumber].RDeadline = pTask[TotalPTaskNumber].Period;
+        pTask[TotalPTaskNumber].WCET = presult[number];
     }
     
     
     cout << "Periodic" << endl;
     cout << "Phase, " << "Period, " << "Execution time, " << "TID" << endl;
     
-    for (size_t i = 0; i < TotalPJobNumber; i++)
+    for (size_t i = 0; i < TotalPTaskNumber; i++)
     {
         cout << pTask[i].Phase << ", ";
         cout << pTask[i].Period << ", ";
@@ -145,7 +152,7 @@ void readData()
     
     string aperline; // 暫存讀入的資料
     
-    for(TotalAPJobNumber = 0; getline(aperFile, line); TotalAPJobNumber++)
+    for(TotalAPTaskNumber = 0; getline(aperFile, line); TotalAPTaskNumber++)
     {
         stringstream line_ss(line);
         vector<float> apresult;
@@ -157,10 +164,10 @@ void readData()
         }
         int number = 0;
         
-        apTask[TotalAPJobNumber].TID = TotalAPJobNumber;
-        apTask[TotalAPJobNumber].Phase = apresult[number++];
-        apTask[TotalAPJobNumber].Period = 0;
-        apTask[TotalAPJobNumber].WCET = apresult[number];
+        apTask[TotalAPTaskNumber].TID = TotalAPTaskNumber;
+        apTask[TotalAPTaskNumber].Phase = apresult[number++];
+        apTask[TotalAPTaskNumber].Period = 0;
+        apTask[TotalAPTaskNumber].WCET = apresult[number];
     }
     
     aperFile.close();
@@ -169,7 +176,7 @@ void readData()
     cout << "Aperiodic" << endl;
     cout << "Phase, " << "Period, " << "Execution time, " << "TID" << endl;
     
-    for (int i = 0; i < TotalAPJobNumber; i++)
+    for (int i = 0; i < TotalAPTaskNumber; i++)
     {
         cout << apTask[i].Phase << ", ";
         cout << apTask[i].Period << ", ";
@@ -182,7 +189,7 @@ void readData()
 // MARK: Step 2-9
 void initialization()
 {
-    MaxSysTime = 0;
+    MaxSysTime = 25;
     
     waitingPQ.clear();
     waitingAPQ.clear();
@@ -190,6 +197,8 @@ void initialization()
     TotalResponseTime = 0;
     FinishedAJobNumber = 0;
     MissPJobNumber = 0;
+    TotalPJobNumber = 0;
+    
     Clock = 0;
 }
 
@@ -202,7 +211,7 @@ void simulation()
         if(!waitingPQ.empty())
         {
             vector<int> jobToRemove; // 儲存不能在 deadline 前完成 job 的號碼
-            for(list <int> :: iterator it = waitingPQ.begin(); it != waitingPQ.end(); ++it) // 找出哪些 job 無法在 deadline 完成
+            for(list <int> :: iterator it = waitingPQ.begin(); it != waitingPQ.end(); ++it) // 找出哪些 periodic job 無法在 deadline 完成
             {
                 if(pJob[*it].absolute_deadline - Clock - pJob[*it].remain_execution_time < 0)
                 {
@@ -219,75 +228,83 @@ void simulation()
         }
         
         // MARK: Step 12
-        for(int i = 0; i < TotalPJobNumber ; i++)
+        for(int i = 0; i < TotalPTaskNumber ; i++)
         {
             if(Clock - pTask[i].Phase >= 0 && fmod(Clock, pTask[i].Period) == 0)  // 目前 Clock 是否為 periodic job 之抵達時間
             {
-                waitingPQ.push_back(pTask[i].TID);  // 在 Queue 中存入對應到該 job 和 task 相對應的 TID 編號
                 pJob[TotalPJobNumber].release_time = Clock;
                 pJob[TotalPJobNumber].remain_execution_time = pTask[i].WCET;
                 pJob[TotalPJobNumber].absolute_deadline = pTask[i].RDeadline + Clock;
                 pJob[TotalPJobNumber].TID = pTask[i].TID;
-                pJob[TotalPJobNumber++].Period = pTask[i].Period;
+                pJob[TotalPJobNumber].JID = TotalPJobNumber;
+                pJob[TotalPJobNumber].Period = pTask[i].Period;
+                
+                waitingPQ.push_back(pJob[TotalPJobNumber++].JID);  // 在 Queue 中存入對應到該 periodic job 的 Job ID
             }
         }
         
         // MARK: Step 13
-        for(int i = 0; i < TotalAPJobNumber; i++)
+        for(int i = 0; i < TotalAPTaskNumber; i++)
         {
             if(Clock-apTask[i].Phase >= 0 && Clock == apTask[i].Phase)  // 目前 Clock 為 aperiodic job 之抵達時間
             {
-                if(waitingAPQ.empty() && Clock == CUSDeadline)  // 如果 ARQ 是空的且 CUS 的 deadline = Clock
+                if(waitingAPQ.empty())  // 如果 ARQ 是空的且 CUS 的 deadline = Clock
                 {
                     CUSDeadline = Clock + apTask[i].WCET/serverSize;
                 }
-                waitingAPQ.push_back(pTask[i].TID);
                 apJob[TotalAPJobNumber].release_time = Clock;
-                apJob[TotalAPJobNumber].remain_execution_time = pTask[i].WCET;
-                apJob[TotalAPJobNumber].absolute_deadline = pTask[i].RDeadline + Clock;
-                apJob[TotalAPJobNumber].TID = pTask[i].TID;
-                apJob[TotalAPJobNumber++].Period = pTask[i].Period;
-                TotalAPJobNumber++;
+                apJob[TotalAPJobNumber].remain_execution_time = apTask[i].WCET;
+                apJob[TotalAPJobNumber].TID = apTask[i].TID;
+                apJob[TotalAPJobNumber].JID = TotalAPJobNumber;
+                apJob[TotalAPJobNumber].Period = apTask[i].Period;
+                
+                waitingAPQ.push_back(apJob[TotalAPJobNumber++].JID);  // 在 Queue 中存入對應到該 aperiodic job 的 Job ID
             }
         }
         
+        showlist(waitingPQ);
+        showlist(waitingAPQ);
+        
         // MARK: Step 14 & 15
         float leastDeadline = INT_MAX;
-        int leastDeadlineTID = 0;
+        int leastDeadlineJID = 0;
         for(list <int> :: iterator it = waitingPQ.begin(); it != waitingPQ.end(); ++it)
         {
-            if(pJob[*it].absolute_deadline < leastDeadline)
+            if(pJob[*it].absolute_deadline - Clock < leastDeadline)
             {
-                leastDeadline = pJob[*it].absolute_deadline;
-                leastDeadlineTID = *it;
+                leastDeadline = pJob[*it].absolute_deadline - Clock;
+                leastDeadlineJID = pJob[*it].JID;
             }
         }
-        if(leastDeadline < CUSDeadline) // 執行 periodic job
+        if(!waitingAPQ.empty() && CUSDeadline - Clock < leastDeadline) // 執行 CUS
+        {
+            list <int> :: iterator it = waitingAPQ.begin();
+            apJob[*it].remain_execution_time-=0.5;
+            cout << "Excuted CUS " << apJob[*it].TID << " in " << Clock << endl;
+            if(apJob[*it].remain_execution_time == 0)
+            {
+                FinishedAJobNumber++;
+                TotalResponseTime += Clock - apJob[*it].release_time;
+                waitingAPQ.remove(*it);
+            }
+        }
+        else if(!waitingPQ.empty())// 執行 periodic job
         {
             for(int i = 0; i < TotalPJobNumber; i++)
             {
-                if(pJob[i].TID == leastDeadlineTID)
+                if(pJob[i].JID == leastDeadlineJID)
                 {
-                    pJob[i].remain_execution_time--;
-                    cout << "Excuted " << pJob[i].TID << "in " << Clock << endl;
+                    pJob[i].remain_execution_time-=0.5;
+                    cout << "Excuted " << pJob[i].TID << " in " << Clock << endl;
                     if(pJob[i].remain_execution_time == 0)  // 執行時間已為 0，則刪除該工作
-                        waitingPQ.remove(pJob[i].TID);
+                        waitingPQ.remove(pJob[i].JID);
                     break;
                 }
             }
         }
-        else // 執行 CUS
-        {
-            list <int> :: iterator it = waitingAPQ.begin();
-            apJob[*it].remain_execution_time--;
-            cout << "Excuted CUS " << apJob[*it].TID << "in " << Clock << endl;
-            if(apJob[*it].remain_execution_time == 0)
-            {
-                FinishedAJobNumber++;
-                TotalResponseTime += Clock + apJob[*it].release_time;
-                waitingAPQ.remove(*it);
-            }
-        }
+        leastDeadline = INT_MAX;
+        leastDeadlineJID = 0;
+        
         
         // MARK: Step 16
         if(CUSDeadline == Clock)
@@ -301,7 +318,7 @@ void simulation()
         }
             
         // MARK: Step 17
-        Clock++;
+        Clock+=0.5;
     }
 }
 

@@ -1,6 +1,6 @@
 # CUS-and-TBS-Simulator
 
-This is a modification of the previous [EDF-and-RM-Simulator](https://pages.github.com/)
+This is a modification from the previous [EDF-and-RM-Simulator](https://github.com/tobyyu007/EDF-and-RM-Simulator)
 
 - 請實作出Constant Utilization Server與Total Bandwidth Server兩個處理非週期性工作的演算法，server size固定為0.2。
 
@@ -27,10 +27,12 @@ Ex:
 	
 
 繳交時間：  1/6
+
 Demo時間： 另訂
+
 繳交內容：  原始程式、2-3頁報告
  
-Pseudocode
+- Pseudocode
 1.	先將periodic.txt中的每個任務資料讀入，並儲存在適當資料結構中。N為任務總個數
 2.	MaxSimTime=100
 3.	將系統的periodic job就緒佇列PQ初始化成空佇列

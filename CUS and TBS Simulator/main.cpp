@@ -77,7 +77,7 @@ float budget = 0;
 // CUS 參數設定
 
 // ********************************************************************* 要記得改回去 0.2
-float serverSize = 0.2; // us
+float serverSize = 0.25; // us
 // ********************************************************************* 要記得改回去 0.2
 float CUSDeadline = INT_MAX; // d
 
@@ -90,19 +90,20 @@ void TBS();
 int main()
 {
     readData();
+    /*
     initialization();
     CUS();
     cout << "CUS" << endl;
     cout << "Miss Rate: " << MissPJobNumber/TotalPJobNumber << endl;
     cout << "Average Response Time: " << TotalResponseTime/FinishedAJobNumber << endl;
+    */
     
-    /*
+    
     initialization();
     TBS();
     cout << "TBS" << endl;
     cout << "Miss Rate: " << MissPJobNumber/TotalPJobNumber << endl;
     cout << "Average Response Time: " << TotalResponseTime/FinishedAJobNumber << endl;
-    */
 }
 
 // MARK: Step 1
@@ -284,6 +285,7 @@ void CUS()
         showlist(waitingAPQ);
         
         // MARK: Step 16
+        // Deadline 和 Budget 更新
         if(Clock >= CUSDeadline && !waitingAPQ.empty())
         {
             list <int> :: iterator it = waitingAPQ.begin();
@@ -341,6 +343,133 @@ void CUS()
         // MARK: Step 17
         // ********************************************************************* 要記得改回去 1
         Clock+=1;
+        // ********************************************************************* 要記得改回去 1
+    }
+}
+
+// MARK: TBS Part
+
+void TBS()
+{
+    // MARK: Step 10
+    while(Clock <= MaxSysTime)
+    {
+        // MARK: Step 11
+        if(!waitingPQ.empty())
+        {
+            vector<int> jobToRemove; // 儲存不能在 deadline 前完成 job 的號碼
+            for(list <int> :: iterator it = waitingPQ.begin(); it != waitingPQ.end(); ++it) // 找出哪些 periodic job 無法在 deadline 完成
+            {
+                if(pJob[*it].absolute_deadline - Clock - pJob[*it].remain_execution_time < 0)
+                {
+                    cout << "Job T" << pJob[*it].TID << " 不能在絕對截限時間內完成" << endl;
+                    MissPJobNumber++;
+                    jobToRemove.push_back(*it);
+                }
+            }
+            for(int i = 0; i < jobToRemove.size(); i++) // 移除 job
+            {
+                waitingPQ.remove(jobToRemove[i]);
+            }
+            jobToRemove.clear();
+        }
+        
+        // MARK: Step 12
+        for(int i = 0; i < TotalPTaskNumber ; i++)
+        {
+            if(Clock - pTask[i].Phase >= 0 && fmod(Clock, pTask[i].Period) == 0)  // 目前 Clock 是否為 periodic job 之抵達時間
+            {
+                pJob[TotalPJobNumber].release_time = Clock;
+                pJob[TotalPJobNumber].remain_execution_time = pTask[i].WCET;
+                pJob[TotalPJobNumber].absolute_deadline = pTask[i].RDeadline + Clock;
+                pJob[TotalPJobNumber].TID = pTask[i].TID;
+                pJob[TotalPJobNumber].JID = TotalPJobNumber;
+                pJob[TotalPJobNumber].Period = pTask[i].Period;
+                
+                waitingPQ.push_back(pJob[TotalPJobNumber++].JID);  // 在 Queue 中存入對應到該 periodic job 的 Job ID
+            }
+        }
+        
+        // MARK: Step 13
+        for(int i = 0; i < TotalAPTaskNumber; i++)
+        {
+            if(Clock-apTask[i].Phase >= 0 && Clock == apTask[i].Phase)  // 目前 Clock 為 aperiodic job 之抵達時間
+            {
+                if(firstAP)  // 如果 ARQ 是空的且 CUS 的 deadline = Clock
+                {
+                    CUSDeadline = Clock + apTask[i].WCET/serverSize;
+                    cout << "Deadline first is: " << CUSDeadline << endl;
+                    budget = apTask[i].WCET;
+                    firstAP = false;
+                }
+                apJob[TotalAPJobNumber].release_time = Clock;
+                apJob[TotalAPJobNumber].remain_execution_time = apTask[i].WCET;
+                apJob[TotalAPJobNumber].TID = apTask[i].TID;
+                apJob[TotalAPJobNumber].JID = TotalAPJobNumber;
+                apJob[TotalAPJobNumber].Period = apTask[i].Period;
+                
+                waitingAPQ.push_back(apJob[TotalAPJobNumber++].JID);  // 在 Queue 中存入對應到該 aperiodic job 的 Job ID
+            }
+        }
+        //showlist(waitingAPQ);
+        
+        // MARK: Step 16
+        if(!waitingAPQ.empty() && budget == 0)
+        {
+            list <int> :: iterator it = waitingAPQ.begin();
+            budget = apTask[*it].WCET;
+            int e = apTask[*it].WCET;
+            CUSDeadline = CUSDeadline + e/serverSize;
+        }
+        
+        // MARK: Step 14 & 15
+        float leastDeadline = INT_MAX;
+        int leastDeadlineJID = 0;
+        for(list <int> :: iterator it = waitingPQ.begin(); it != waitingPQ.end(); ++it)
+        {
+            if(pJob[*it].absolute_deadline - Clock < leastDeadline)
+            {
+                leastDeadline = pJob[*it].absolute_deadline - Clock;
+                leastDeadlineJID = pJob[*it].JID;
+            }
+        }
+        if(!waitingAPQ.empty() && CUSDeadline - Clock <= leastDeadline && budget > 0) // 執行 TBS Aperiodic Job
+        {
+            list <int> :: iterator it = waitingAPQ.begin();
+            // ********************************************************************* 要記得改回去 1
+            apJob[*it].remain_execution_time-=0.5;
+            budget -= 0.5;
+            // ********************************************************************* 要記得改回去 1
+            cout << "Excuted CUS " << apJob[*it].TID << " in " << Clock << endl;
+            if(apJob[*it].remain_execution_time == 0)
+            {
+                FinishedAJobNumber++;
+                TotalResponseTime += Clock - apJob[*it].release_time;
+                waitingAPQ.remove(*it);
+            }
+        }
+        else if(!waitingPQ.empty())// 執行 periodic job
+        {
+            for(int i = 0; i < TotalPJobNumber; i++)
+            {
+                if(pJob[i].JID == leastDeadlineJID)
+                {
+                    // ********************************************************************* 要記得改回去 1
+                    pJob[i].remain_execution_time-=0.5;
+                    // ********************************************************************* 要記得改回去 1
+                    cout << "Excuted " << pJob[i].TID << " in " << Clock << endl;
+                    if(pJob[i].remain_execution_time == 0)  // 執行時間已為 0，則刪除該工作
+                        waitingPQ.remove(pJob[i].JID);
+                    break;
+                }
+            }
+        }
+        leastDeadline = INT_MAX;
+        leastDeadlineJID = 0;
+            
+        // MARK: Step 17
+        // ********************************************************************* 要記得改回去 1
+        Clock+=0.5;
         // ********************************************************************* 要記得改回去 1
     }
 }

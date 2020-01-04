@@ -56,9 +56,6 @@ struct APJob
 struct PTask pTask[10000];  // 儲存 periodic task 資訊
 struct APTask apTask[10000];  // 儲存 aperiodic task 資訊
 
-struct PJob pJob[10000]; // 儲存 periodic job 資訊
-struct APJob apJob[10000]; // 儲存 aperiodic job 資訊
-
 list <int> waitingPQ; // Periodic job 執行序列
 list <int> waitingAPQ; // Aperiodic job 執行序列
 
@@ -77,7 +74,7 @@ float budget = 0;
 // CUS 參數設定
 
 // ********************************************************************* 要記得改回去 0.2
-float serverSize = 0.25; // us
+float serverSize = 0.2; // us
 // ********************************************************************* 要記得改回去 0.2
 float CUSDeadline = INT_MAX; // d
 
@@ -90,14 +87,12 @@ void TBS();
 int main()
 {
     readData();
-    /*
+    
     initialization();
     CUS();
     cout << "CUS" << endl;
     cout << "Miss Rate: " << MissPJobNumber/TotalPJobNumber << endl;
-    cout << "Average Response Time: " << TotalResponseTime/FinishedAJobNumber << endl;
-    */
-    
+    cout << "Average Response Time: " << TotalResponseTime/FinishedAJobNumber << endl << endl;
     
     initialization();
     TBS();
@@ -138,7 +133,7 @@ void readData()
         pTask[TotalPTaskNumber].WCET = presult[number];
     }
     
-    
+    /*
     cout << "Periodic" << endl;
     cout << "Phase, " << "Period, " << "Execution time, " << "TID" << endl;
     
@@ -149,6 +144,7 @@ void readData()
         cout << pTask[i].WCET << ", ";
         cout << pTask[i].TID << ", " << endl;
     }
+    */
     
     
     perFile.close();
@@ -183,7 +179,7 @@ void readData()
     
     aperFile.close();
     
-    
+    /*
     cout << "Aperiodic" << endl;
     cout << "Phase, " << "Period, " << "Execution time, " << "TID" << endl;
     
@@ -194,7 +190,7 @@ void readData()
         cout << apTask[i].WCET << ", ";
         cout << apTask[i].TID << ", " << endl;
     }
-    
+    */
 }
 
 // MARK: Step 2-9
@@ -211,10 +207,11 @@ void initialization()
     FinishedAJobNumber = 0;
     MissPJobNumber = 0;
     TotalPJobNumber = 0;
+    TotalAPJobNumber = 0;
     
     firstAP = true;
     budget = 0;
-    
+    CUSDeadline = INT_MAX;
     Clock = 0;
 }
 
@@ -222,6 +219,9 @@ void initialization()
 
 void CUS()
 {
+    struct PJob pJob[10000] = {}; // 儲存 periodic job 資訊
+    struct APJob apJob[10000] = {}; // 儲存 aperiodic job 資訊
+    
     // MARK: Step 10
     while(Clock <= MaxSysTime)
     {
@@ -351,6 +351,9 @@ void CUS()
 
 void TBS()
 {
+    struct PJob pJob[10000] = {}; // 儲存 periodic job 資訊
+    struct APJob apJob[10000] = {}; // 儲存 aperiodic job 資訊
+    
     // MARK: Step 10
     while(Clock <= MaxSysTime)
     {
@@ -411,7 +414,7 @@ void TBS()
                 waitingAPQ.push_back(apJob[TotalAPJobNumber++].JID);  // 在 Queue 中存入對應到該 aperiodic job 的 Job ID
             }
         }
-        //showlist(waitingAPQ);
+        showlist(waitingAPQ);
         
         // MARK: Step 16
         if(!waitingAPQ.empty() && budget == 0)
@@ -437,8 +440,8 @@ void TBS()
         {
             list <int> :: iterator it = waitingAPQ.begin();
             // ********************************************************************* 要記得改回去 1
-            apJob[*it].remain_execution_time-=0.5;
-            budget -= 0.5;
+            apJob[*it].remain_execution_time-=1;
+            budget -= 1;
             // ********************************************************************* 要記得改回去 1
             cout << "Excuted CUS " << apJob[*it].TID << " in " << Clock << endl;
             if(apJob[*it].remain_execution_time == 0)
@@ -455,7 +458,7 @@ void TBS()
                 if(pJob[i].JID == leastDeadlineJID)
                 {
                     // ********************************************************************* 要記得改回去 1
-                    pJob[i].remain_execution_time-=0.5;
+                    pJob[i].remain_execution_time-=1;
                     // ********************************************************************* 要記得改回去 1
                     cout << "Excuted " << pJob[i].TID << " in " << Clock << endl;
                     if(pJob[i].remain_execution_time == 0)  // 執行時間已為 0，則刪除該工作
@@ -469,7 +472,7 @@ void TBS()
             
         // MARK: Step 17
         // ********************************************************************* 要記得改回去 1
-        Clock+=0.5;
+        Clock+=1;
         // ********************************************************************* 要記得改回去 1
     }
 }

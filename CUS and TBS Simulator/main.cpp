@@ -14,6 +14,9 @@
 #include <list>
 #include <math.h>
 #include <limits.h>
+#ifndef max
+    #define max(a,b) ((a) > (b) ? (a) : (b))
+#endif
 using namespace std;
 
 struct PTask
@@ -197,7 +200,7 @@ void readData()
 void initialization()
 {
     // ********************************************************************* 要記得改回去 1000
-    MaxSysTime = 24;
+    MaxSysTime = 1000;
     // ********************************************************************* 要記得改回去 1000
     
     waitingPQ.clear();
@@ -282,7 +285,7 @@ void CUS()
                 waitingAPQ.push_back(apJob[TotalAPJobNumber++].JID);  // 在 Queue 中存入對應到該 aperiodic job 的 Job ID
             }
         }
-        showlist(waitingAPQ);
+        //showlist(waitingAPQ);
         
         // MARK: Step 16
         // Deadline 和 Budget 更新
@@ -313,11 +316,11 @@ void CUS()
             apJob[*it].remain_execution_time-=1;
             budget -= 1;
             // ********************************************************************* 要記得改回去 1
-            cout << "Excuted CUS " << apJob[*it].TID << " in " << Clock << endl;
+            cout << "Excuted aperiodic " << apJob[*it].TID << " in " << Clock << endl;
             if(apJob[*it].remain_execution_time == 0)
             {
                 FinishedAJobNumber++;
-                TotalResponseTime += Clock - apJob[*it].release_time;
+                TotalResponseTime += Clock + 1 - apJob[*it].release_time;
                 waitingAPQ.remove(*it);
             }
         }
@@ -414,7 +417,7 @@ void TBS()
                 waitingAPQ.push_back(apJob[TotalAPJobNumber++].JID);  // 在 Queue 中存入對應到該 aperiodic job 的 Job ID
             }
         }
-        showlist(waitingAPQ);
+        //showlist(waitingAPQ);
         
         // MARK: Step 16
         if(!waitingAPQ.empty() && budget == 0)
@@ -422,7 +425,7 @@ void TBS()
             list <int> :: iterator it = waitingAPQ.begin();
             budget = apTask[*it].WCET;
             int e = apTask[*it].WCET;
-            CUSDeadline = CUSDeadline + e/serverSize;
+            CUSDeadline = max(CUSDeadline, Clock) + e/serverSize;
         }
         
         // MARK: Step 14 & 15
@@ -443,11 +446,11 @@ void TBS()
             apJob[*it].remain_execution_time-=1;
             budget -= 1;
             // ********************************************************************* 要記得改回去 1
-            cout << "Excuted CUS " << apJob[*it].TID << " in " << Clock << endl;
+            cout << "Excuted aperiodic " << apJob[*it].TID << " in " << Clock << endl;
             if(apJob[*it].remain_execution_time == 0)
             {
                 FinishedAJobNumber++;
-                TotalResponseTime += Clock - apJob[*it].release_time;
+                TotalResponseTime += Clock + 1 - apJob[*it].release_time;
                 waitingAPQ.remove(*it);
             }
         }
